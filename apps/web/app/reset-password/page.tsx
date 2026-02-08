@@ -1,11 +1,28 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { apiFetch } from '../../lib/api';
 
 export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto flex min-h-screen max-w-md items-center px-6 py-16">
+          <section className="w-full rounded-2xl border border-white/15 bg-brand-ink/70 p-6">
+            <h1 className="font-display text-3xl font-bold text-brand-sand">Reset Password</h1>
+            <p className="mt-2 text-sm text-white/75">Loading reset form...</p>
+          </section>
+        </main>
+      }
+    >
+      <ResetPasswordForm />
+    </Suspense>
+  );
+}
+
+function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = useMemo(() => searchParams.get('token') ?? '', [searchParams]);
 
