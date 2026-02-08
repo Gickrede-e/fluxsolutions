@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum ScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+  DISABLED
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  passwordHash        String               @map("password_hash")
+  role                Role                 @default(USER)
+  banned              Boolean              @default(false)
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+  files               File[]
+  folders             Folder[]
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  audits              AuditLog[]           @relation("AuditActor")
+
+  @@map("users")
+}
+
+model Folder {
+  id        String   @id @default(cuid())
+  ownerId   String   @map("owner_id")
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  files     File[]
+
+  @@unique([ownerId, name])
+  @@index([ownerId])
+  @@map("folders")
+}
+
+model File {
+  id        String     @id @default(cuid())
+  ownerId   String     @map("owner_id")
+  folderId  String?    @map("folder_id")
+  filename  String
+  size      BigInt
+  mime      String
+  storageKey String    @unique @map("storage_key")
+  checksum  String?
+  createdAt DateTime   @default(now()) @map("created_at")
+  deletedAt DateTime?  @map("deleted_at")
+  scanStatus ScanStatus @default(DISABLED) @map("scan_status")
+  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  folder    Folder?    @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  shares    Share[]
+
+  @@index([ownerId, createdAt(sort: Desc)])
+  @@index([ownerId, filename])
+  @@index([folderId])
+  @@map("files")
+}
+
+model Share {
+  id             String    @id @default(cuid())
+  fileId         String    @map("file_id")
+  token          String    @unique
+  passwordHash   String?   @map("password_hash")
+  expiresAt      DateTime? @map("expires_at")
+  maxDownloads   Int?      @map("max_downloads")
+  downloadsCount Int       @default(0) @map("downloads_count")
+  oneTime        Boolean   @default(false) @map("one_time")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  file           File      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@index([fileId])
+  @@map("shares")
+}
+
+model RefreshToken {
+  id           String    @id @default(cuid())
+  userId       String    @map("user_id")
+  tokenHash    String    @unique @map("token_hash")
+  userAgent    String?   @map("user_agent")
+  ip           String?
+  expiresAt    DateTime  @map("expires_at")
+  revokedAt    DateTime? @map("revoked_at")
+  replacedById String?   @map("replaced_by_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+model AuditLog {
+  id        String    @id @default(cuid())
+  actorId   String?   @map("actor_id")
+  action    String
+  targetType String   @map("target_type")
+  targetId  String?   @map("target_id")
+  ip        String?
+  userAgent String?   @map("user_agent")
+  metadata  Json?
+  createdAt DateTime  @default(now()) @map("created_at")
+  actor     User?     @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([actorId])
+  @@map("audit_logs")
+}
