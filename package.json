@@ -1,0 +1,32 @@
+{
+  "name": "fluxsolutions",
+  "version": "1.0.0",
+  "private": true,
+  "description": "fluxsolutions secure file sharing platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run build --workspace @fluxsolutions/shared && concurrently -n shared,api,web -c magenta,blue,green \"npm run dev --workspace @fluxsolutions/shared\" \"npm run dev --workspace @fluxsolutions/api\" \"npm run dev --workspace @fluxsolutions/web\"",
+    "build": "npm run build --workspace @fluxsolutions/shared && npm run build --workspace @fluxsolutions/api && npm run build --workspace @fluxsolutions/web",
+    "lint": "eslint .",
+    "test": "npm run test --workspace @fluxsolutions/api",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.19.0",
+    "@types/node": "^22.13.4",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.19.0",
+    "globals": "^15.14.0",
+    "prettier": "^3.5.0",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.22.0"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  }
+}
