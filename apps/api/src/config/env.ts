@@ -21,6 +21,19 @@ for (const envPath of envPaths) {
   }
 }
 
+function parseOptionalUrl(value: string | undefined, key: string): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  try {
+    new URL(value);
+    return value;
+  } catch {
+    throw new Error(`${key} must be a valid URL`);
+  }
+}
+
 const rawEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   HOST: z.string().default('0.0.0.0'),
@@ -52,7 +65,9 @@ const rawEnvSchema = z.object({
   PRESIGNED_URL_EXPIRES_SECONDS: z.coerce.number().int().positive().default(900),
 
   S3_ENDPOINT: z.string().url().default('http://localhost:9000'),
-  S3_PUBLIC_ENDPOINT: z.string().url().optional(),
+  S3_PUBLIC_ENDPOINT: z.string().optional(),
+  S3_ORIGIN_PUBLIC_ENDPOINT: z.string().optional(),
+  ENABLE_CDN: z.string().optional(),
   S3_REGION: z.string().default('us-east-1'),
   S3_ACCESS_KEY: z.string().min(1).optional(),
   S3_SECRET_KEY: z.string().min(1).optional(),
@@ -80,6 +95,12 @@ const rawEnvSchema = z.object({
 
 const parsed = rawEnvSchema.parse(process.env);
 
+const s3PublicEndpointRaw = parseOptionalUrl(parsed.S3_PUBLIC_ENDPOINT, 'S3_PUBLIC_ENDPOINT');
+const s3OriginPublicEndpointRaw = parseOptionalUrl(
+  parsed.S3_ORIGIN_PUBLIC_ENDPOINT,
+  'S3_ORIGIN_PUBLIC_ENDPOINT',
+);
+
 const resolvedS3AccessKey = parsed.S3_ACCESS_KEY ?? parsed.MINIO_ROOT_USER;
 const resolvedS3SecretKey = parsed.S3_SECRET_KEY ?? parsed.MINIO_ROOT_PASSWORD;
 
@@ -87,6 +108,15 @@ if (!resolvedS3AccessKey || !resolvedS3SecretKey) {
   throw new Error(
     'Missing object storage credentials. Set S3_ACCESS_KEY/S3_SECRET_KEY or MINIO_ROOT_USER/MINIO_ROOT_PASSWORD.',
   );
+}
+
+const enableCdn = parseBooleanEnv(parsed.ENABLE_CDN, true);
+const s3PublicEndpoint = enableCdn
+  ? s3PublicEndpointRaw ?? parsed.S3_ENDPOINT
+  : s3OriginPublicEndpointRaw ?? parsed.S3_ENDPOINT;
+
+if (!enableCdn && parsed.NODE_ENV === 'production' && !s3OriginPublicEndpointRaw) {
+  throw new Error('ENABLE_CDN=false in production requires S3_ORIGIN_PUBLIC_ENDPOINT to be set');
 }
 
 export const env = {
@@ -97,12 +127,13 @@ export const env = {
   cookieSecure: parseBooleanEnv(parsed.COOKIE_SECURE, parsed.NODE_ENV === 'production'),
   s3ForcePathStyle: parseBooleanEnv(parsed.S3_FORCE_PATH_STYLE, true),
   enableClamav: parseBooleanEnv(parsed.ENABLE_CLAMAV, false),
+  enableCdn,
   enableMetrics: parseBooleanEnv(parsed.ENABLE_METRICS, true),
   skipStartupChecks: parseBooleanEnv(parsed.SKIP_STARTUP_CHECKS, false),
   allowedMimeTypes: splitCsv(parsed.ALLOWED_MIME_TYPES).length
     ? splitCsv(parsed.ALLOWED_MIME_TYPES)
     : [...DEFAULT_ALLOWED_MIME_TYPES],
-  s3PublicEndpoint: parsed.S3_PUBLIC_ENDPOINT ?? parsed.S3_ENDPOINT,
+  s3PublicEndpoint,
 };
 
 export type Env = typeof env;

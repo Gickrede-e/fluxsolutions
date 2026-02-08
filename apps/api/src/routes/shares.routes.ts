@@ -289,7 +289,7 @@ const sharesRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const cacheControl =
-      share.passwordHash || share.oneTime || share.maxDownloads || share.expiresAt
+      !env.enableCdn || share.passwordHash || share.oneTime || share.maxDownloads || share.expiresAt
         ? 'private, no-store'
         : 'public, max-age=31536000, immutable';
 

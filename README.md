@@ -67,6 +67,13 @@ Recommended domain scheme:
 - Browser downloads/uploads directly through CDN/files domain.
 - Works well with edge routing and direct object path.
 
+### Disable CDN Support
+
+- Set `ENABLE_CDN=false`.
+- Set `S3_ORIGIN_PUBLIC_ENDPOINT` to direct file origin (for example `https://files.fluxsolutions.ru`).
+- Keep `S3_PUBLIC_ENDPOINT` for CDN mode only (can stay configured, but will be ignored when CDN is disabled).
+- In production, `S3_ORIGIN_PUBLIC_ENDPOINT` is required if `ENABLE_CDN=false`.
+
 ### Cache-Control Guidance
 
 In API `/s/:token/download`:
@@ -186,10 +193,12 @@ Critical vars:
 - `MINIO_ROOT_PASSWORD`
 - `MAX_FILE_SIZE_BYTES` (default `1073741824`)
 - `ALLOWED_MIME_TYPES`
+- `ENABLE_CDN` (`true`/`false`)
 - `NEXT_PUBLIC_API_BASE_URL` (recommended: `/api`)
 - `CORS_ORIGIN` (must include your web origin)
 - `COOKIE_DOMAIN` (example: `.fluxsolutions.ru`)
-- `S3_PUBLIC_ENDPOINT` (example: `https://cdn.fluxsolutions.ru`)
+- `S3_PUBLIC_ENDPOINT` (example: `https://cdn.fluxsolutions.ru`, used when `ENABLE_CDN=true`)
+- `S3_ORIGIN_PUBLIC_ENDPOINT` (required in production when `ENABLE_CDN=false`)
 
 ## Local Development
 
@@ -279,6 +288,11 @@ Create records:
 - `www.fluxsolutions.ru` -> `CNAME` to `fluxsolutions.ru`
 - `api.fluxsolutions.ru` -> `A` to VPS IPv4
 - `cdn.fluxsolutions.ru` -> CDN provider hostname (for example `*.trbcdn.net`)
+
+CDN disabled mode:
+
+- Point `files.fluxsolutions.ru` directly to VPS (`A` record).
+- Set `ENABLE_CDN=false` and `S3_ORIGIN_PUBLIC_ENDPOINT=https://files.fluxsolutions.ru`.
 
 ### TLS
 
