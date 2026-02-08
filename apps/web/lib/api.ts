@@ -2,6 +2,30 @@ import { API_BASE_URL } from './config';
 import { readCookie } from './cookies';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const CSRF_COOKIE_NAME = 'fluxsolutions_csrf_token';
+
+async function ensureCsrfToken(): Promise<string | null> {
+  const currentToken = readCookie(CSRF_COOKIE_NAME);
+  if (currentToken) {
+    return currentToken;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/csrf`, {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+
+  return readCookie(CSRF_COOKIE_NAME);
+}
 
 export class ApiError extends Error {
   status: number;
@@ -28,7 +52,7 @@ export async function apiFetch<T>(
   }
 
   if (!SAFE_METHODS.has(method)) {
-    const csrfToken = readCookie('fluxsolutions_csrf_token');
+    const csrfToken = await ensureCsrfToken();
     if (csrfToken) {
       headers.set('x-csrf-token', csrfToken);
     }
