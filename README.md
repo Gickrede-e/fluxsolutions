@@ -186,7 +186,10 @@ Critical vars:
 - `MINIO_ROOT_PASSWORD`
 - `MAX_FILE_SIZE_BYTES` (default `1073741824`)
 - `ALLOWED_MIME_TYPES`
-- `S3_PUBLIC_ENDPOINT` (`https://files.fluxsolutions.tld`)
+- `NEXT_PUBLIC_API_BASE_URL` (recommended: `/api`)
+- `CORS_ORIGIN` (must include your web origin)
+- `COOKIE_DOMAIN` (example: `.fluxsolutions.ru`)
+- `S3_PUBLIC_ENDPOINT` (example: `https://cdn.fluxsolutions.ru`)
 
 ## Local Development
 
