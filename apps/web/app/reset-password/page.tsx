@@ -1,7 +1,8 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { FormEvent, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
 import { apiFetch } from '../../lib/api';
 
 export default function ResetPasswordPage() {

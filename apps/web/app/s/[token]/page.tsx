@@ -2,7 +2,8 @@
 
 import { formatBytes } from '@fluxsolutions/shared';
 import { useParams } from 'next/navigation';
-import { FormEvent, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
 import useSWR from 'swr';
 import { API_BASE_URL } from '../../../lib/config';
 import { apiFetch } from '../../../lib/api';
