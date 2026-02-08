@@ -266,27 +266,28 @@ curl -fsS http://127.0.0.1:4000/readyz
 docker compose --profile security up -d fluxsolutions-clamav
 ```
 
-## Domains + TLS + CDN (Cloudflare Example)
+## Domains + TLS + CDN (Cloudflare/CDNNow)
 
 ### DNS
 
-Create A/AAAA records to VPS:
+Create records:
 
-- `app.fluxsolutions.tld`
-- `api.fluxsolutions.tld`
-- `files.fluxsolutions.tld`
+- `fluxsolutions.ru` -> `A` to VPS IPv4
+- `www.fluxsolutions.ru` -> `CNAME` to `fluxsolutions.ru`
+- `api.fluxsolutions.ru` -> `A` to VPS IPv4
+- `cdn.fluxsolutions.ru` -> CDN provider hostname (for example `*.trbcdn.net`)
 
 ### TLS
 
-Option 1 (recommended with Cloudflare):
+Option 1 (CDN edge TLS, origin HTTP):
 
-- Cloudflare SSL mode: `Full (strict)`
-- Use origin cert in Nginx (edit vhosts for `listen 443 ssl` and cert paths).
+- CDN terminates TLS at edge and forwards to origin over `HTTP:80`.
+- Useful when `cdn.fluxsolutions.ru` points to CDN network, not directly to VPS.
 
 Option 2 (Let's Encrypt via certbot):
 
 - Use mounted paths `deploy/certbot/www` and `deploy/certbot/conf`.
-- Issue certs for all three domains and switch Nginx server blocks to TLS.
+- Issue certs for app + api domains and enable HTTPS vhosts in Nginx.
 - TLS vhost template: `deploy/nginx/examples/fluxsolutions-ssl.conf`.
 - Copy to `deploy/nginx/conf.d/` after certs are issued, then reload nginx.
 
@@ -295,18 +296,20 @@ Bootstrap certs example:
 ```bash
 docker compose run --rm fluxsolutions-certbot certonly \
   --webroot -w /var/www/certbot \
-  -d app.fluxsolutions.tld -d api.fluxsolutions.tld -d files.fluxsolutions.tld \
+  -d fluxsolutions.ru -d www.fluxsolutions.ru -d api.fluxsolutions.ru \
   --email you@example.com --agree-tos --no-eff-email
+cp deploy/nginx/examples/fluxsolutions-ssl.conf deploy/nginx/conf.d/fluxsolutions-ssl.conf
+docker compose restart fluxsolutions-nginx
 docker compose --profile tls up -d fluxsolutions-certbot
 ```
 
 ### Cloudflare Settings
 
-- Proxy enabled for all 3 domains.
+- Proxy enabled for app + api domains.
 - SSL/TLS: `Full (strict)`.
 - Cache rules:
   - `app`/`api`: bypass dynamic routes.
-  - `files`: allow cache only for responses with `public, max-age=...`.
+  - `files`/`cdn`: allow cache only for responses with `public, max-age=...`.
 - Keep query string for presigned URLs (required).
 - Enable range requests and large file support.
 
